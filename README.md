@@ -50,6 +50,17 @@ duration_min
 date
 
 
+## APIs
+### User APIs
+| Method | Endpoint           | Description              |
+|--------|--------------------|--------------------------|
+| POST   | /users             | Create a new user        |
+| GET    | /users             | Get all users            |
+| GET    | /users/<user_id>   | Get user by ID           |
+| PUT    | /users/<user_id>   | Update user details      |
+| DELETE | /users/<user_id>   | Delete a user            |
+
+
 ## Setup Instructions
 1. Clone the repository:
 git clone <repository-url>
