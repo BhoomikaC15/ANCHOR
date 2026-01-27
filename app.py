@@ -82,6 +82,82 @@ def delete_user(user_id):
     models.db.session.commit(user)
     return jsonify({"message": "User deleted successfully"}), 200
 
+
+#API's for Category model
+@app.route('/categories', methods=['POST'])
+def create_category():
+    data=request.get_json()
+    name=data.get("name")
+    user_id=data.get("user_id")
+    if not name or not user_id:
+        return jsonify({"error": "Fields cannot be left empty"}), 400
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 400
+    category=models.Category(
+        name=name,
+        user_id=user_id
+    )
+    models.db.session.add(category)
+    models.db.session.commit()
+    return jsonify({
+        "id": category.id,
+        "name": category.name,
+        "user_id": category.user_id
+    }), 201
+
+@app.route('/users/<int:user_id>/categories', methods=['GET'])
+def get_categories_by_user(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    categories=models.Category.query.filter_by(user_id=user_id).all()
+    result=[]
+    for category in categories:
+        result.append({
+            "id": category.id,
+            "name": category.name,
+            "user_id": category.user_id
+        })
+    return jsonify(result), 200
+
+@app.route('/categories/<int:category_id>', methods=['GET'])
+def get_category_by_id(category_id):
+    category=models.Category.query.get(category_id)
+    if not category:
+        return jsonify({"error": "Category nor found"}), 404
+    return jsonify({
+        "id": category.id,
+        "name": category.name,
+        "user_id": category.user_id
+    }), 200
+
+@app.route('/categories/<int:category_id>', methods=['PUT'])
+def update_category(category_id):
+    category=models.Category.query.get(category_id)
+    if not category:
+        return jsonify({"error": "Categry not found"}), 404
+    data=request.get_json()
+    name=data.get("name")
+    if name:
+        category.name=name
+    models.db.session.commit()
+    return jsonify({
+        "id": category.id,
+        "name": category.name,
+        "user_id": category.user_id
+    }), 200
+
+@app.route('/categories/<int:category_id>', methods=['DELETE'])
+def delete_category(category_id):
+    category=models.Category.query.get(category_id)
+    if not category:
+        return jsonify({"error": "Category not found"}), 400
+    models.db.session.delete(category)
+    models.db.commit()
+    return jsonify({"message": "category successfully deleted"}), 200
+
+
 if __name__== "__main__":
     with app.app_context():
         models.db.create_all()

@@ -24,7 +24,6 @@ Version Control: Git & GitHub
 /ANCHOR
 |__app.py       #Flask application entry point
 |__models.py    #Database models
-|__init_db.py   #one-time database initialization script
 |__venv/        #Virtual Environment
 |__README.md
 
@@ -52,13 +51,22 @@ date
 
 ## APIs
 ### User APIs
-| Method | Endpoint           | Description              |
-|--------|--------------------|--------------------------|
-| POST   | /users             | Create a new user        |
-| GET    | /users             | Get all users            |
-| GET    | /users/<user_id>   | Get user by ID           |
-| PUT    | /users/<user_id>   | Update user details      |
-| DELETE | /users/<user_id>   | Delete a user            |
+| Method | Endpoint               | Description              |
+|--------|------------------------|--------------------------|
+| POST   | /users                 | Create a new user        |
+| GET    | /users                 | Get all users            |
+| GET    | /users/<int:user_id>   | Get user by ID           |
+| PUT    | /users/<int:user_id>   | Update user details      |
+| DELETE | /users/<int:user_id>   | Delete a user            |
+
+### Category APIs
+| Method | Endpoint                        | Description                  |
+|--------|---------------------------------|------------------------------|
+| POST   | /categories                     | Create a new category        |
+| GET    | /users/<int:user_id>/categories | Get all categories by user   |
+| GET    | /categories/<int:category_id>   | Get category by ID           |
+| PUT    | /categories/<int:category_id>   | Update category details      |
+| DELETE | /categories/<int:category_id>   | Delete a category            |
 
 
 ## Setup Instructions
