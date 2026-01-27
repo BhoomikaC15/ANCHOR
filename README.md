@@ -5,30 +5,37 @@ The goal is to promote "consistency, accountability, and self-improvement" witho
 
 
 ## Current Features
+```
 User based session tracking
 Categorized focus sessions (study, coding, etc.)
 Daily, weekly and monthly time comparisons
 Progress evaluation based on personal history
 Backend built with Flask and SQLAlchemy
+```
 
 
 ## Tech Stack
+```
 Backend: Flask(Python)
 Database: SQlite
 ORM: SQLAlchemy
 Environment: Virtual env
 Version Control: Git & GitHub
+```
 
 
 ## Project Structure
+```
 /ANCHOR
 |__app.py       #Flask application entry point
 |__models.py    #Database models
 |__venv/        #Virtual Environment
 |__README.md
+```
 
 
 ## Database Models
+```
 USER:
 ID
 Username
@@ -47,6 +54,7 @@ User_ID
 Category_ID
 duration_min
 date
+```
 
 
 ## APIs
@@ -68,8 +76,19 @@ date
 | PUT    | /categories/<int:category_id>   | Update category details      |
 | DELETE | /categories/<int:category_id>   | Delete a category            |
 
+### Session APIs
+| Method | Endpoint                        | Description                             |
+|--------|---------------------------------|-----------------------------------------|
+| POST   | /sessions                       | Create a new session                    |
+| GET    | /sessions                       | Get all categories by user and category |
+| GET    | /users/<int:user_id>/sessions   | Get sessions by user                    |
+| GET    | /sessions/<int:session_id>      | Get session by ID                       |
+| PUT    | /sessions/<int:session_id>      | Update a session details                |
+| DELETE | /sessions/<int:session_id>      | Delete a session                        |
+
 
 ## Setup Instructions
+```
 1. Clone the repository:
 git clone <repository-url>
 cd ANCHOR
@@ -82,20 +101,27 @@ pip install flask flask-sqlalchemy
 python init_db.py
 5. Run the Flask app:
 python app.py
+```
 
 
 ## Project Status
+```
 In active development
 Current Focus: Backend
 Frontend and authentication will be added in later stages.
+```
 
 
 ## Need of ANCHOR
+```
 Many productivity apps compare users against others, which can be discouraging.
 The app never compares you to others.
 It only compares you to yourself.
+```
 
 
 ## Author
+```
 Bhoomika Choudhury
 Computer Science undergraduate (2nd year)
+```
