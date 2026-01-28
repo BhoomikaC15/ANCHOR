@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import models
 
 app = Flask(__name__)
@@ -282,6 +281,53 @@ def delete_session(session_id):
     models.db.session.delete(ses)
     models.db.session.commit()
     return jsonify({"message": "Session successfully deleted"}), 200
+
+
+def session_summary_response(user_id, start_date, end_date, total_minutes):
+    return{
+        "user_id": user_id,
+        "from": start_date,
+        "to": end_date,
+        "total_minutes": total_minutes
+    }
+#API's for Session summary
+@app.route('/summary/today/<int:user_id>', methods=['GET'])
+def summary_today(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    today=date.today()
+    total=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(models.Session.user_id==user_id, models.Session.date==today).scalar() or 0
+    return jsonify(session_summary_response(user_id, today, today, total)), 200
+
+@app.route('/summary/week/<int:user_id>', methods=['GET'])
+def summary_week(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    today=date.today()
+    start_of_week= today-timedelta(days=today.weekday())
+    end_of_week= start_of_week +timedelta(days=6)
+    total=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
+        models.Session.user_id==user_id, models.Session.date>=start_of_week, models.Session.date<= end_of_week).scalar() or 0
+    return jsonify(session_summary_response(user_id, start_of_week, end_of_week, total)), 200
+
+@app.route('/summary/month/<int:user_id>', methods=['GET'])
+def summary_month(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    today=date.today()
+    start_of_month=today.replace(day=1)
+    if today.month==12:
+        first_of_next_month=today.replace(year=today.year+1, month=1, day=1)
+    else:
+        first_of_next_month=today.replace(month=today.month+1, day=1)
+    end_of_month=first_of_next_month -timedelta(days=1)
+    total=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
+        models.Session.user_id==user_id, models.Session.date>=start_of_month, models.Session.date<=end_of_month).scalar() or 0
+    return jsonify(session_summary_response(user_id, start_of_month, end_of_month, total)), 200
+
 
 if __name__== "__main__":
     with app.app_context():
