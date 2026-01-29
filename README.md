@@ -94,15 +94,25 @@ date
 | DELETE | /sessions/<int:session_id>      | Delete a session                        |
 
 ### Summary API's
-These endpoints provide productivity summaries by comparing a user's focus time
-
-across different time ranges. All comparisons are based only on the user's own data.
+These endpoints provide productivity summaries by comparing a user's focus time across different time ranges. All comparisons are based only on the user's own data.
 
 | Method | Endpoint                      | Description                           |
 |--------|-------------------------------|---------------------------------------|
 | GET    | /summary/today/<int:user_id>  | Get total focus time for today        |
 | GET    | /summary/week/<int:user_id>   | Get total focus time for this week    |
 | GET    | /summary/month/<int:user_id>  | Get total focus time for this month   |
+
+### Comparison APIs
+These endpoints compare a user's current productivity with their own past performance.
+No comparisons with other users are made.
+
+| Method | Endpoint                          | Description                                  |
+|-------|-----------------------------------|----------------------------------------------|
+| GET   | /compare/<int:user_id>/days       | Compare today vs yesterday focus time        |
+| GET   | /compare/<int:user_id>/weeks      | Compare this week vs last week focus time    |
+| GET   | /compare/<int:user_id>/months     | Compare this month vs last month focus time  |
+
+
 
 
 ## Setup Instructions

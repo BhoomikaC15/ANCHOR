@@ -283,6 +283,14 @@ def delete_session(session_id):
     return jsonify({"message": "Session successfully deleted"}), 200
 
 
+def get_session_total(user_id, start_date, end_date=None):
+    if end_date is None:
+        return models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
+            models.Session.user_id==user_id, models.Session.date==start_date).scalar() or 0
+    else:
+        return models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
+            models.Session.user_id==user_id, models.Session.date>=start_date, models.Session.date<=end_date).scalar() or 0
+
 def session_summary_response(user_id, start_date, end_date, total_minutes):
     return{
         "user_id": user_id,
@@ -297,7 +305,7 @@ def summary_today(user_id):
     if not user:
         return jsonify({"error": "User not found"}), 404
     today=date.today()
-    total=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(models.Session.user_id==user_id, models.Session.date==today).scalar() or 0
+    total=get_session_total(user_id, today)
     return jsonify(session_summary_response(user_id, today, today, total)), 200
 
 @app.route('/summary/week/<int:user_id>', methods=['GET'])
@@ -308,8 +316,7 @@ def summary_week(user_id):
     today=date.today()
     start_of_week= today-timedelta(days=today.weekday())
     end_of_week= start_of_week +timedelta(days=6)
-    total=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
-        models.Session.user_id==user_id, models.Session.date>=start_of_week, models.Session.date<= end_of_week).scalar() or 0
+    total=get_session_total(user_id, start_of_week, end_of_week)
     return jsonify(session_summary_response(user_id, start_of_week, end_of_week, total)), 200
 
 @app.route('/summary/month/<int:user_id>', methods=['GET'])
@@ -324,9 +331,74 @@ def summary_month(user_id):
     else:
         first_of_next_month=today.replace(month=today.month+1, day=1)
     end_of_month=first_of_next_month -timedelta(days=1)
-    total=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
-        models.Session.user_id==user_id, models.Session.date>=start_of_month, models.Session.date<=end_of_month).scalar() or 0
+    total=get_session_total(user_id, start_of_month, end_of_month)
     return jsonify(session_summary_response(user_id, start_of_month, end_of_month, total)), 200
+
+
+#API's for comparison
+@app.route('/compare/<int:user_id>/days', methods=['GET'])
+def compare_days(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    today=date.today()
+    yesterday=today-timedelta(days=1)
+    today_min=get_session_total(user_id, today)
+    yesterday_min=get_session_total(user_id, yesterday)
+    status="improved" if today_min>yesterday_min else ("declined" if today_min<yesterday_min else "no change")
+    return jsonify({
+        "user_id": user_id,
+        "today_minutes": today_min,
+        "yesterday_minutes": yesterday_min,
+        "difference": today_min - yesterday_min,
+        "status": status
+    })
+
+@app.route('/compare/<int:user_id>/weeks', methods=['GET'])
+def compare_weeks(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    today=date.today()
+    this_week_start=today-timedelta(days=today.weekday())
+    this_week_end=this_week_start+timedelta(days=6)
+    last_week_start=this_week_start-timedelta(days=7)
+    last_week_end= last_week_start+timedelta(days=6)
+    this_week_min=get_session_total(user_id, this_week_start, this_week_end)
+    last_week_min=get_session_total(user_id, last_week_start, last_week_end)
+    status="improved" if this_week_min>last_week_min else ("declined" if this_week_min< last_week_min else "no change")
+    return jsonify({
+        "user_id": user_id,
+        "this_week_minutes": this_week_min,
+        "last_week_minutes": last_week_min, 
+        "difference": this_week_min - last_week_min,
+        "status": status
+    })
+
+@app.route('/compare/<int:user_id>/months', methods=['GET'])
+def compare_months(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "user not found"}), 404
+    today=date.today()
+    this_month_start=today.replace(day=1)
+    if today.month==12:
+        next_month_start=today.replace(year=today.year+1, month=1, day=1)
+    else:
+        next_month_start=today.replace(month=today.month+1, day=1)
+    this_month_end=next_month_start-timedelta(days=1)
+    last_month_end=this_month_start-timedelta(days=1)
+    last_month_start=last_month_end.replace(day=1)
+    this_month_min=get_session_total(user_id, this_month_start, this_month_end)
+    last_month_min=get_session_total(user_id, last_month_start, last_month_end)
+    status= "improved" if this_month_min>last_month_min else ( "declined" if this_month_min<last_month_min else "no change")
+    return jsonify({
+        "user_id": user_id,
+        "this_month_minutes": this_month_min,
+        "last_month_minutes": last_month_min,
+        "difference": this_month_min - last_month_min,
+        "status": status
+    })
 
 
 if __name__== "__main__":
