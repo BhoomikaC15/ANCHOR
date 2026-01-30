@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from datetime import datetime, date, timedelta
 import models
+from sqlalchemy import func
 
 app = Flask(__name__)
 
@@ -399,6 +400,38 @@ def compare_months(user_id):
         "difference": this_month_min - last_month_min,
         "status": status
     })
+
+
+#API for overview
+@app.route('/overview/<int:user_id>', methods=['GET'])
+def overview(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    total_sessions=models.Session.query.filter_by(user_id=user_id).count()
+    total_minutes=models.db.session.query(models.db.func.sum(models.Session.duration_min)).filter(
+        models.Session.user_id==user_id).scalar() or 0
+    per_day=models.db.session.query(models.Session.date, models.db.func.sum(models.Session.duration_min).label("day_total")).filter(
+        models.Session.user_id==user_id). group_by(models.Session.date).all()
+    days_with_sessions=len(per_day)
+    avg_min_per_day=(float(total_minutes)/days_with_sessions if days_with_sessions>0 else 0.0)
+    most_used_cat=None
+    result=models.db.session.query(models.Category.id, models.Category.name,models.db.func.sum(
+        models.Session.duration_min).label("cat_total")).join(models.Session, models.Session.category_id==models.Category.id).filter(
+            models.Session.user_id==user_id).group_by(models.Category.id, models.Category.name).order_by(models.db.func.sum(models.Session.duration_min).desc()).first()
+    if result:
+            cat_id, cat_name, cat_total=result
+            most_used_cat={
+                "category_id": cat_id,
+                "name": cat_name,
+                "total_minutes": int(cat_total)
+            }
+    return jsonify({
+        "user_id": user_id,
+        "total_duration": int(total_minutes),
+        "average_minutes_per_day": avg_min_per_day,
+        "most_used_category": most_used_cat
+    }), 200
 
 
 if __name__== "__main__":
