@@ -33,7 +33,12 @@ def create_user():
 
 @app.route('/users', methods=['GET'])
 def get_all_users():
-    users=models.User.query.all()
+    page=request.args.get("page", 1, type=int)
+    limit=request.args.get("limit", 10, type=int)
+    mimit= min(limit, 100)
+    query=models.User.query
+    total=query.count()
+    users=query.offset((page-1)*limit).limit(limit).all()
     result=[]
     for user in users:
         result.append({
@@ -42,7 +47,12 @@ def get_all_users():
             "email": user.email,
             "created_at": user.created_at
         })
-    return jsonify(result), 200
+    return jsonify({
+        "page": page,
+        "limit": limit,
+        "total_records": total,
+        "data": result
+    }), 200
 
 @app.route('/users/<int:user_id>', methods=['GET'])
 def get_user_by_id(user_id):
@@ -196,12 +206,19 @@ def create_session():
 def get_sessions():
     user_id=request.args.get("user_id", type=int)
     category_id=request.args.get("category_id", type=int)
+    page=request.args.get("page", 1, type=int)
+    limit=request.args.get("limit", 10, type=int)
+    get_all=request.args.get("all", "false").lower() == "true"
     query=models.Session.query
     if user_id is not None:
         query=query.filter_by(user_id=user_id)
     if category_id is not None:
         query=query.filter_by(category_id=category_id)
-    sessions=query.all()
+    if get_all:
+        sessions=query.all()
+    else:
+        limit= min(limit, 100)
+        sessions=query.offset((page-1)*limit).limit(limit).all()
     result=[]
     for ses in sessions:
         result.append({
@@ -211,14 +228,24 @@ def get_sessions():
             "duration_min": ses.duration_min,
             "date": ses.date.isoformat()
         })
-    return jsonify(result), 200
+    return jsonify({
+        "page": page if not get_all else None,
+        "limit": limit if not get_all else None,
+        "count": len(result),
+        "data": result
+    }), 200
 
 @app.route('/users/<int:user_id>/sessions', methods=['GET'])
 def get_sessions_by_user(user_id):
     user=models.User.query.get(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
-    sessions=models.Session.query.filter_by(user_id=user_id).all()
+    page=request.args.get("page", 1, type=int)
+    limit=request.args.get("limit", 10, type=int)
+    limit= min(limit, 100)
+    query=models.Session.query.filter_by(user_id=user_id)
+    total=query.count()
+    sessions=query.offset((page-1)*limit).limit(limit).all()
     result=[]
     for ses in sessions:
         result.append({
@@ -228,7 +255,13 @@ def get_sessions_by_user(user_id):
             "duration_min": ses.duration_min,
             "date": ses.date.isoformat()
         })
-    return jsonify(result), 200
+    return jsonify({
+        "page": page,
+        "limit": limit,
+        "total_records": total,
+        "count": len(result),
+        "data": result
+    }), 200
 
 @app.route('/sessions/<int:session_id>', methods=['GET'])
 def get_session_by_id(session_id):

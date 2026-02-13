@@ -129,7 +129,7 @@ It helps users understand where most of their time is being spent.
 This endpoint calculates user consistency based on daily activity.
 | Method | Endpoint                   | Description                               |
 |--------|----------------------------|-------------------------------------------|
-| GET    | //streak/<int:user_id>     | Get current and longest activity streak   |
+| GET    | /streak/<int:user_id>     | Get current and longest activity streak   |
 
 
 ## Setup Instructions
