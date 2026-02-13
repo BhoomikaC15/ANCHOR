@@ -95,7 +95,6 @@ date
 
 ### Summary API's
 These endpoints provide productivity summaries by comparing a user's focus time across different time ranges. All comparisons are based only on the user's own data.
-
 | Method | Endpoint                      | Description                           |
 |--------|-------------------------------|---------------------------------------|
 | GET    | /summary/today/<int:user_id>  | Get total focus time for today        |
@@ -105,23 +104,32 @@ These endpoints provide productivity summaries by comparing a user's focus time 
 ### Comparison APIs
 These endpoints compare a user's current productivity with their own past performance.
 No comparisons with other users are made.
-
-| Method | Endpoint                          | Description                                 |
+| Method | Endpoint                         | Description                                  |
 |-------|-----------------------------------|----------------------------------------------|
 | GET   | /compare/<int:user_id>/days       | Compare today vs yesterday focus time        |
 | GET   | /compare/<int:user_id>/weeks      | Compare this week vs last week focus time    |
 | GET   | /compare/<int:user_id>/months     | Compare this month vs last month focus time  |
 
 ### Overview / Stats API
-
 This endpoint provides a high-level overview of a user's productivity data.
 It is designed to give a quick snapshot of overall activity without requiring
 multiple API calls.
-
 | Method | Endpoint                    | Description                                      |
 |--------|-----------------------------|--------------------------------------------------|
 | GET    | /overview/<int:user_id>     | Get overall productivity statistics for a user   |
 
+### Category-wise Summary API
+This endpoint provides a breakdown of total focus time grouped by category for a specific user.
+It helps users understand where most of their time is being spent.
+| Method | Endpoint                        | Description                                |
+|--------|---------------------------------|--------------------------------------------|
+| GET    | /summary/category/<int:user_id> | Get total focus time grouped by category   |
+
+### Streak / Consistency API
+This endpoint calculates user consistency based on daily activity.
+| Method | Endpoint                   | Description                               |
+|--------|----------------------------|-------------------------------------------|
+| GET    | //streak/<int:user_id>     | Get current and longest activity streak   |
 
 
 ## Setup Instructions

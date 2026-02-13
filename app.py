@@ -434,6 +434,68 @@ def overview(user_id):
     }), 200
 
 
+#API for summary by category
+@app.route('/summary/category/<int:user_id>', methods=['GET'])
+def summary_by_category(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    rows=models.db.session.query(models.Category.id, models.Category.name,func.sum(models.Session.duration_min).label("total_minutes")).join(models.Session, models.Session.category_id==models.Category.id).filter(
+        models.Session.user_id==user_id).group_by(models.Category.id, models.Category.name).order_by(models.Category.name.asc()).all()
+    categories=[
+        {
+            "category_id": r.id,
+            "name": r.name,
+            "total_minutes": int(r.total_minutes or 0)
+        }
+        for r in rows
+    ]
+    return jsonify({
+        "user_id":user_id,
+        "categories": categories
+    }), 200
+
+
+#API for Streak
+@app.route("/streak/<int:user_id>", methods=['GET'])
+def streak(user_id):
+    user=models.User.query.get(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404 
+    rows=models.db.session.query(models.Session.date).filter(models.Session.user_id==user_id, models.Session.date<=date.today()).distinct().order_by(models.Session.date.asc()).all()
+    if not rows:
+        return jsonify({
+            "user_id": user_id,
+            "current_streak": 0,
+            "longest_streal": 0
+        }), 200
+    session_dates={r.date for r in rows}
+    today=date.today()
+    current_streak=0
+    d=today
+    while d in session_dates:
+        current_streak+=1
+        d=d-timedelta(days=1)
+    #longest streak calculation
+    sorted_dates=sorted(session_dates)
+    longest_streak=1
+    temp_streak=1
+    for i in range(1, len(sorted_dates)):
+        prev=sorted_dates[i-1]
+        curr=sorted_dates[i]
+        if curr==prev+timedelta(days=1):
+            longest_streak+=1
+        else:
+            longest_streak=max(longest_streak, temp_streak)
+            temp_streak=1
+    longest_streak=max(longest_streak, temp_streak)
+    return jsonify({
+        "user_id": user_id,
+        "current_streak": current_streak,
+        "longest_streak": longest_streak
+    }), 200
+
+
 if __name__== "__main__":
     with app.app_context():
         models.db.create_all()
