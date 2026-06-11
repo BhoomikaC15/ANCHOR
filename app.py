@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from datetime import datetime, date, timedelta
 import models
 from sqlalchemy import func
+from werkzeug.security import generate_password_hash
 
 app = Flask(__name__)
 
@@ -9,6 +10,8 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///productivity.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 models.db.init_app(app)
+import insights
+import auth
 
 #API's for User model
 @app.route('/users', methods=['POST'])
@@ -25,7 +28,7 @@ def create_user():
     user=models.User(
         username=username,
         email=email,
-        password=password
+        password=generate_password_hash(password)
     )
     models.db.session.add(user)
     models.db.session.commit()
@@ -174,22 +177,59 @@ def create_session():
     data=request.get_json()
     user_id=data.get("user_id")
     category_id=data.get("category_id")
+    session_start_str=data.get("session_start")
+    session_end_str=data.get("session_end")
     duration_min=data.get("duration_min")
-    date=data.get("date")
-    if not user_id or not category_id or not duration_min or not date:
+
+    session_start = None
+    session_end = None
+    session_date = None
+
+    # parse datetimes if provided (expect ISO 8601 strings)
+    if session_start_str:
+        try:
+            session_start = datetime.fromisoformat(session_start_str)
+        except Exception:
+            return jsonify({"error": "session_start must be ISO 8601 datetime string"}), 400
+    if session_end_str:
+        try:
+            session_end = datetime.fromisoformat(session_end_str)
+        except Exception:
+            return jsonify({"error": "session_end must be ISO 8601 datetime string"}), 400
+
+    # if both timestamps present, compute duration and date from start
+    if session_start and session_end:
+        if session_end <= session_start:
+            return jsonify({"error": "session_end must be after session_start"}), 400
+        duration_min = int((session_end - session_start).total_seconds() // 60)
+        session_date = session_start.date()
+
+    # fallback: allow legacy `date` + `duration_min`
+    if session_date is None:
+        date_str = data.get("date")
+        if date_str:
+            try:
+                session_date = datetime.strptime(date_str, "%d-%m-%Y").date()
+            except ValueError:
+                return jsonify({"error": "Date must be in format DD-MM-YYYY"}),400
+
+    # basic validation
+    if not user_id or not category_id or (duration_min is None) or (session_date is None):
         return jsonify({"error": "Fields cannot be left empty"}), 400
-    if not user_id:
+
+    user=models.User.query.get(user_id)
+    if not user:
         return jsonify({"error": "User not found"}), 404
-    if not category_id:
+    category=models.Category.query.get(category_id)
+    if not category:
         return jsonify({"error": "Category not found"}), 404
-    try:
-        session_date=datetime.strptime(date, "%d-%m-%Y").date()
-    except ValueError:
-        return jsonify({"error": "Date must be in format DD-MM-YYYY"}),400
+
     ses=models.Session(
         user_id=user_id,
         category_id=category_id,
-        duration_min=duration_min,
+        session_start=session_start,
+        session_end=session_end,
+        duration_min=int(duration_min),
         date=session_date
     )
     models.db.session.add(ses)
@@ -198,6 +238,8 @@ def create_session():
         "id": ses.id,
         "user_id": ses.user_id,
         "category_id": ses.category_id,
+        "session_start": ses.session_start,
+        "session_end": ses.session_end,
         "duration_min": ses.duration_min,
         "date": ses.date.isoformat()
     }), 201
@@ -225,6 +267,8 @@ def get_sessions():
             "id": ses.id,
             "user_id": ses.user_id,
             "category_id": ses.category_id,
+            "session_start": ses.session_start.isoformat() if ses.session_start else None,
+            "session_end": ses.session_end.isoformat() if ses.session_end else None,
             "duration_min": ses.duration_min,
             "date": ses.date.isoformat()
         })
@@ -252,6 +296,8 @@ def get_sessions_by_user(user_id):
             "id": ses.id,
             "user_id": ses.user_id,
             "category_id": ses.category_id,
+            "session_start": ses.session_start.isoformat() if ses.session_start else None,
+            "session_end": ses.session_end.isoformat() if ses.session_end else None,
             "duration_min": ses.duration_min,
             "date": ses.date.isoformat()
         })
@@ -272,6 +318,8 @@ def get_session_by_id(session_id):
         "id": ses.id,
         "user_id": ses.user_id,
         "category_id": ses.category_id,
+        "session_start": ses.session_start,
+        "session_end": ses.session_end,
         "duration_min": ses.duration_min,
         "date": ses.date.isoformat()
     }), 200
@@ -283,15 +331,34 @@ def update_session(session_id):
         return jsonify({"error": "Session not found"}), 404
     data=request.get_json()
     category_id=data.get("category_id")
-    duration_min=data.get("duration_min")
     date=data.get("date")   
+    session_start_str=data.get("session_start")
+    session_end_str=data.get("session_end")
+    session_start=None
+    session_end=None
+    if session_start_str:
+        try:
+            session_start = datetime.fromisoformat(session_start_str)
+        except Exception:
+            return jsonify({"error": "session_start must be ISO 8601 datetime string"}), 400
+    if session_end_str:
+        try:
+            session_end = datetime.fromisoformat(session_end_str)
+        except Exception:
+            return jsonify({"error": "session_end must be ISO 8601 datetime string"}), 400
     if category_id:
         new_cat=models.Category.query.get(category_id)
         if not new_cat:
             return jsonify({"error": "Category not found"}), 404
         ses.category_id=category_id
-    if duration_min:
-        ses.duration_min=duration_min
+    if session_start:
+        ses.session_start=session_start
+        # update date to match new start
+        ses.date = session_start.date()
+    if session_end:
+        ses.session_end=session_end
+    if (ses.session_start and ses.session_end) and ses.session_end>ses.session_start:
+        ses.duration_min=int((ses.session_end-ses.session_start).total_seconds()//60)
     if date:
         try:
             ses.date=datetime.strptime(date, "%d-%m-%Y").date()
@@ -303,6 +370,8 @@ def update_session(session_id):
         "id": ses.id,
         "user_id": ses.user_id,
         "category_id": ses.category_id,
+        "session_start": ses.session_start,
+        "session_end": ses.session_end,
         "duration_min": ses.duration_min,
         "date": ses.date.isoformat()
     }), 200

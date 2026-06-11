@@ -135,7 +135,7 @@ This endpoint calculates user consistency based on daily activity.
 ## Setup Instructions
 1. Clone the repository:
 
-git clone <repository-url>
+git clone <https://github.com/BhoomikaC15/ANCHOR>
 
 cd ANCHOR
 

@@ -17,6 +17,8 @@ class Category(db.Model):
 
 class Session(db.Model):
     id=db.Column(db.Integer, primary_key=True)
+    session_start=db.Column(db.DateTime, nullable=True)
+    session_end=db.Column(db.DateTime, nullable=True)
     duration_min=db.Column(db.Integer, nullable=False)
     date= db.Column(db.Date, nullable=False)
     category_id=db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
