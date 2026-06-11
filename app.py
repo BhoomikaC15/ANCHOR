@@ -3,8 +3,18 @@ from datetime import datetime, date, timedelta
 import models
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 
 app = Flask(__name__)
+
+app.secret_key = 'your-secret-key-change-in-production'
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+
+@login_manager.user_loader
+def load_user(user_id):
+    return models.User.query.get(int(user_id))
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///productivity.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -12,6 +22,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 models.db.init_app(app)
 import insights
 import auth
+import timer
 
 #API's for User model
 @app.route('/users', methods=['POST'])
